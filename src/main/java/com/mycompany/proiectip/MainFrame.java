@@ -93,7 +93,7 @@ public class MainFrame extends javax.swing.JFrame {
         gasit.setText("Gasit " + String.valueOf(Singleton.getInstance().getGasitValue()) + "/7");
 
     }
-
+//test git
     public void buttonSound() {
         Music bs = new Music();
         bs.setFile("graphics/sounds/mixkit-modern-technology-select-3124.wav");
