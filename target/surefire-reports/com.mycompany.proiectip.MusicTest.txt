@@ -1,0 +1,12 @@
+-------------------------------------------------------------------------------
+Test set: com.mycompany.proiectip.MusicTest
+-------------------------------------------------------------------------------
+Tests run: 2, Failures: 1, Errors: 1, Skipped: 0, Time elapsed: 0.053 s <<< FAILURE! - in com.mycompany.proiectip.MusicTest
+testLoop  Time elapsed: 0.001 s  <<< ERROR!
+java.lang.NullPointerException: Cannot invoke "javax.sound.sampled.Clip.start()" because "this.clip" is null
+	at com.mycompany.proiectip.MusicTest.testLoop(MusicTest.java:33)
+
+testPlay  Time elapsed: 0.052 s  <<< FAILURE!
+org.opentest4j.AssertionFailedError: expected: <true> but was: <false>
+	at com.mycompany.proiectip.MusicTest.testPlay(MusicTest.java:24)
+

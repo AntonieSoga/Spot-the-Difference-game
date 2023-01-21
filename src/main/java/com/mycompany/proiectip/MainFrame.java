@@ -1,13 +1,24 @@
 package com.mycompany.proiectip;
 
+import com.mycompany.proiectip.design.adaper.KeyboardAdapter;
+import com.mycompany.proiectip.design.adaper.QButton;
+import com.mycompany.proiectip.design.adaper.QuitButton;
+import com.mycompany.proiectip.design.command.ContinuousMouseMovementCommand;
+import com.mycompany.proiectip.design.command.Invoker;
 import com.mycompany.proiectip.design.singleton.Singleton;
 import com.mycompany.proiectip.design.strategy.CreditCardStrategy;
 import com.mycompany.proiectip.design.strategy.Item;
-import com.mycompany.proiectip.design.strategy.PaypalStrategy;
 import com.mycompany.proiectip.design.strategy.ShoppingCart;
+import com.mycompany.proiectip.design.memento.JInputFieldMemento;
+import com.mycompany.proiectip.design.memento.JPasswordFieldMemento;
+import com.mycompany.proiectip.design.memento.JInputField1;
+import com.mycompany.proiectip.design.memento.JPasswordField1;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Image;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -22,6 +33,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 
 /**
  *
@@ -86,7 +98,7 @@ public class MainFrame extends javax.swing.JFrame {
         label.setIcon(new ImageIcon(resultingImage));
     }
 
-    public void hintsSetup() {
+    private void hintsSetup() {
         hintsLevel1.setText("Hints left: " + String.valueOf(Singleton.getInstance().getHints()));
         hintsLevels.setText("Current Hints: " + String.valueOf(Singleton.getInstance().getHints()));
         storeHints.setText("Currents Hints: " + String.valueOf(Singleton.getInstance().getHints()));
@@ -94,6 +106,7 @@ public class MainFrame extends javax.swing.JFrame {
 
     }
 //test git
+
     public void buttonSound() {
         Music bs = new Music();
         bs.setFile("graphics/sounds/mixkit-modern-technology-select-3124.wav");
@@ -105,9 +118,11 @@ public class MainFrame extends javax.swing.JFrame {
     Item hint10 = new Item("10hint-uri", 10);
     Item hint15 = new Item("15hint-uri", 15);
 
-    public MainFrame() throws IOException {
-        initComponents();
+    Invoker invoker = new Invoker();
 
+    public MainFrame() throws IOException {
+        initComponents();   
+        this.setLocationRelativeTo(null);
         hintsSetup();
         Singleton.getInstance().bgMusic.setFile("graphics/sounds/TremLoadingloopl.wav");
         Singleton.getInstance().bgMusic.play(true);
@@ -116,37 +131,109 @@ public class MainFrame extends javax.swing.JFrame {
 
     public Boolean isLevel1Completed() {
 
-    List<JButton> exclude = new ArrayList<JButton>(Arrays.asList(useHint1, giveup1Btn, soundBtn1));
+        List<JButton> exclude = new ArrayList<>(Arrays.asList(useHint1, giveup1Btn, soundBtn1));
 
         for (Component c : jLayeredPane2.getComponents()) {
-            
-            if (c instanceof JButton && !exclude.contains(c) ) {
+
+            if (c instanceof JButton && !(exclude.contains(c))) {
                 JButton button = (JButton) c;
-               if(!button.isBorderPainted())
-                   return false;
-                
+                if (!button.isBorderPainted()) {
+                    return false;
+                }
+
             }
         }
         win();
         return true;
     }
 
+    public void imageSetup(JButton button, String path, int width, int height) {
+        BufferedImage bi = null;
+        try {
+            bi = ImageIO.read(new File(path));
+        } catch (IOException e) {
+        }
+        Image resultingImage = bi.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        button.setIcon(new ImageIcon(resultingImage));
+    }
+
+    public void imageSetup(JLabel label, String path, int width, int height) {
+        BufferedImage bi = null;
+        try {
+            bi = ImageIO.read(new File(path));
+        } catch (IOException e) {
+        }
+        Image resultingImage = bi.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        label.setIcon(new ImageIcon(resultingImage));
+    }
+
     public void resetLevel() {
         Singleton.getInstance().setGasitValue(0);
         gasit.setText("Gasit 0/7");
-        List<JButton> exclude = new ArrayList<JButton>(Arrays.asList(useHint1, giveup1Btn, soundBtn1));
+        List<JButton> exclude = new ArrayList<>(Arrays.asList(useHint1, giveup1Btn, soundBtn1));
 
         for (Component c : jLayeredPane2.getComponents()) {
-            
-            if (c instanceof JButton && !exclude.contains(c) ) {
+
+            if (c instanceof JButton && !exclude.contains(c)) {
                 JButton button = (JButton) c;
                 button.setEnabled(true);
                 button.setBorderPainted(false);
-                
+
             }
         }
 
-    
+    }
+
+    /**
+     *
+     * @param anuleaza
+     * @param confirma
+     * @param ST
+     * @param text
+     */
+    public void confirma(JButton anuleaza, JButton confirma, JLabel ST, String text) {
+
+        backToStoreBtn.setEnabled(false);
+        anuleaza.setEnabled(false);
+        paymentCombo.setEnabled(false);
+        confirma.setEnabled(false);
+        cart.pay(new CreditCardStrategy(nume.getText(), cardNumber.getText(), cvv.getText(), expDate.getText()));
+        ST.setText("Status Tranzacite: ai platit: " + String.valueOf(cart.calculateTotal()) + " lei folosind " + text);
+        Timer timer = new Timer(); //new timer
+        jLabel16.setVisible(true);
+        jLabel15.setVisible(true);
+
+        TimerTask task = new TimerTask() {
+            int s = 2;
+
+            public void run() {
+
+                s--;
+                if (s == -1) {
+                    jLabel16.setVisible(false);
+                    jLabel15.setVisible(false);
+                    ST.setText("");
+                    Singleton.getInstance().setHints(Singleton.getInstance().getHints() + cart.calculateTotal());
+                    hintsSetup();
+                    Menu.setVisible(true);
+                    cart.removeItem(hint5);
+                    cart.removeItem(hint15);
+                    cart.removeItem(hint10);
+                    Cart.setVisible(false);
+                    hints5.setBackground(Color.white);
+                    hints10.setBackground(Color.white);
+                    hints15.setBackground(Color.white);
+                    backToStoreBtn.setEnabled(true);
+                    anuleaza.setEnabled(true);
+                    paymentCombo.setEnabled(true);
+                    confirma.setEnabled(true);
+                }
+
+            }
+        };
+        timer.scheduleAtFixedRate(task,
+                0, 900);
+
     }
 
     public Music musicSetup(Music music) {
@@ -190,10 +277,11 @@ public class MainFrame extends javax.swing.JFrame {
      * WARNING: Do NOT modify this code. The content of this method is always
      * regenerated by the Form Editor.
      */
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">                              
     private void initComponents() {
 
+        //command
+        //end
         jLayeredPane1 = new javax.swing.JLayeredPane();
         Menu = new javax.swing.JPanel();
         playBtn = new javax.swing.JButton();
@@ -319,53 +407,45 @@ public class MainFrame extends javax.swing.JFrame {
         playBtn.setBackground(new java.awt.Color(204, 0, 153));
         playBtn.setBorderPainted(false);
         playBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 playBtnMouseClicked(evt);
             }
+
+            @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 playBtnMouseEntered(evt);
             }
+
+            @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 playBtnMouseExited(evt);
             }
         });
-        playBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                playBtnActionPerformed(evt);
-            }
+        playBtn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            playBtnActionPerformed(evt);
         });
         Menu.add(playBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(490, 200, 240, 70));
-        BufferedImage play = null;
-        try {
-            play = ImageIO.read(new File("graphics/imagini/UI/PNG/blue_button04.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImageplay = play.getScaledInstance(240,70, Image.SCALE_SMOOTH);
-        playBtn.setIcon(new ImageIcon(resultingImageplay));
+        imageSetup(playBtn, "graphics/imagini/UI/PNG/blue_button04.png", 240, 70);
 
         quitBtn.setBackground(new java.awt.Color(51, 51, 255));
         quitBtn.setBorderPainted(false);
         quitBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 quitBtnMouseEntered(evt);
             }
+
+            @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 quitBtnMouseExited(evt);
             }
         });
-        quitBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                quitBtnActionPerformed(evt);
-            }
+        quitBtn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            quitBtnActionPerformed(evt);
         });
         Menu.add(quitBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 330, 180, 60));
-        BufferedImage quit = null;
-        try {
-            quit = ImageIO.read(new File("graphics/imagini/UI/PNG/red_button01.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImagequit = quit.getScaledInstance(180,60, Image.SCALE_SMOOTH);
-        quitBtn.setIcon(new ImageIcon(resultingImagequit));
+        imageSetup(quitBtn, "graphics/imagini/UI/PNG/red_button01.png", 180, 60);
 
         storeBtn.setBackground(new java.awt.Color(204, 204, 255));
         storeBtn.setBorderPainted(false);
@@ -373,48 +453,27 @@ public class MainFrame extends javax.swing.JFrame {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 storeBtnMouseEntered(evt);
             }
+
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 storeBtnMouseExited(evt);
             }
         });
-        storeBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                storeBtnActionPerformed(evt);
-            }
+        storeBtn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            storeBtnActionPerformed(evt);
         });
         Menu.add(storeBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(500, 270, 220, 60));
-        BufferedImage store= null;
-        try {
-            store = ImageIO.read(new File("graphics/imagini/UI/PNG/yellow_button00.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImagestore = store.getScaledInstance(220,60, Image.SCALE_SMOOTH);
-        storeBtn.setIcon(new ImageIcon(resultingImagestore));
+        imageSetup(storeBtn, "graphics/imagini/UI/PNG/yellow_button00.png", 220, 60);
 
         soundBtn.setBorderPainted(false);
         soundBtn.setContentAreaFilled(false);
-        soundBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                soundBtnActionPerformed(evt);
-            }
+        soundBtn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            soundBtnActionPerformed(evt);
         });
         Menu.add(soundBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(54, 37, 70, 70));
-        BufferedImage img = null;
-        try {
-            img = ImageIO.read(new File("graphics/imagini/soundON.png"));
-        } catch (IOException e) {
-        }
-        //Image resultingImage = img.getScaledInstance(70,70, Image.SCALE_SMOOTH);
-        soundBtn.setIcon(new ImageIcon(img));
-        Menu.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1280, 720));
-        BufferedImage bg = null;
-        try {
-            bg = ImageIO.read(new File("graphics/imagini/background.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImagebg = bg.getScaledInstance(1280,720, Image.SCALE_SMOOTH);
-        jLabel2.setIcon(new ImageIcon(resultingImagebg));
+        imageSetup(soundBtn, "graphics/imagini/soundON.png", 70, 70);
 
+        Menu.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1280, 720));
+        imageSetup(jLabel2, "graphics/imagini/background.png", 1280, 720);
         jLayeredPane1.add(Menu);
 
         Store.setBackground(new java.awt.Color(255, 255, 0));
@@ -427,10 +486,8 @@ public class MainFrame extends javax.swing.JFrame {
         cartBtn.setForeground(new java.awt.Color(255, 255, 255));
         cartBtn.setText("Cart");
         cartBtn.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(255, 102, 0), 3, true));
-        cartBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                cartBtnActionPerformed(evt);
-            }
+        cartBtn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            cartBtnActionPerformed(evt);
         });
 
         backbtn.setBackground(new java.awt.Color(255, 51, 0));
@@ -438,34 +495,30 @@ public class MainFrame extends javax.swing.JFrame {
         backbtn.setForeground(new java.awt.Color(255, 255, 255));
         backbtn.setText("Back");
         backbtn.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(255, 102, 0), 3, true));
-        backbtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                backbtnActionPerformed(evt);
-            }
+        backbtn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            backbtnActionPerformed(evt);
         });
 
         hints15Btn.setIcon(new javax.swing.ImageIcon("graphics/imagini/hints15img.png")); // NOI18N
-        hints15Btn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                hints15BtnActionPerformed(evt);
-            }
+        hints15Btn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            hints15BtnActionPerformed(evt);
         });
 
         javax.swing.GroupLayout hints15Layout = new javax.swing.GroupLayout(hints15);
         hints15.setLayout(hints15Layout);
         hints15Layout.setHorizontalGroup(
-            hints15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(hints15Layout.createSequentialGroup()
-                .addGap(23, 23, 23)
-                .addComponent(hints15Btn, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(26, Short.MAX_VALUE))
+                hints15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(hints15Layout.createSequentialGroup()
+                                .addGap(23, 23, 23)
+                                .addComponent(hints15Btn, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(26, Short.MAX_VALUE))
         );
         hints15Layout.setVerticalGroup(
-            hints15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(hints15Layout.createSequentialGroup()
-                .addGap(35, 35, 35)
-                .addComponent(hints15Btn)
-                .addContainerGap(34, Short.MAX_VALUE))
+                hints15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(hints15Layout.createSequentialGroup()
+                                .addGap(35, 35, 35)
+                                .addComponent(hints15Btn)
+                                .addContainerGap(34, Short.MAX_VALUE))
         );
 
         hints5.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -474,62 +527,55 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        if(hints5Btn.hasFocus())
-        hints5Btn.setBackground(Color.red);
+        if (hints5Btn.hasFocus()) {
+            hints5Btn.setBackground(Color.red);
+        }
         hints5Btn.setIcon(new javax.swing.ImageIcon("graphics/imagini/hnts5img.png")); // NOI18N
-        hints5Btn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                hints5BtnActionPerformed(evt);
-            }
-        });
+        hints5Btn.addActionListener(new ActionListenerImpl());
 
         javax.swing.GroupLayout hints5Layout = new javax.swing.GroupLayout(hints5);
         hints5.setLayout(hints5Layout);
         hints5Layout.setHorizontalGroup(
-            hints5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(hints5Layout.createSequentialGroup()
-                .addGap(23, 23, 23)
-                .addComponent(hints5Btn, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(23, Short.MAX_VALUE))
+                hints5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(hints5Layout.createSequentialGroup()
+                                .addGap(23, 23, 23)
+                                .addComponent(hints5Btn, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(23, Short.MAX_VALUE))
         );
         hints5Layout.setVerticalGroup(
-            hints5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(hints5Layout.createSequentialGroup()
-                .addGap(34, 34, 34)
-                .addComponent(hints5Btn)
-                .addContainerGap(35, Short.MAX_VALUE))
+                hints5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(hints5Layout.createSequentialGroup()
+                                .addGap(34, 34, 34)
+                                .addComponent(hints5Btn)
+                                .addContainerGap(35, Short.MAX_VALUE))
         );
 
         hints10Btn.setIcon(new javax.swing.ImageIcon("graphics/imagini/hints10img.png")); // NOI18N
-        hints10Btn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                hints10BtnActionPerformed(evt);
-            }
+        hints10Btn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            hints10BtnActionPerformed(evt);
         });
 
         javax.swing.GroupLayout hints10Layout = new javax.swing.GroupLayout(hints10);
         hints10.setLayout(hints10Layout);
         hints10Layout.setHorizontalGroup(
-            hints10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(hints10Layout.createSequentialGroup()
-                .addGap(21, 21, 21)
-                .addComponent(hints10Btn, javax.swing.GroupLayout.PREFERRED_SIZE, 201, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(23, Short.MAX_VALUE))
+                hints10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(hints10Layout.createSequentialGroup()
+                                .addGap(21, 21, 21)
+                                .addComponent(hints10Btn, javax.swing.GroupLayout.PREFERRED_SIZE, 201, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(23, Short.MAX_VALUE))
         );
         hints10Layout.setVerticalGroup(
-            hints10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, hints10Layout.createSequentialGroup()
-                .addContainerGap(40, Short.MAX_VALUE)
-                .addComponent(hints10Btn)
-                .addGap(29, 29, 29))
+                hints10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, hints10Layout.createSequentialGroup()
+                                .addContainerGap(40, Short.MAX_VALUE)
+                                .addComponent(hints10Btn)
+                                .addGap(29, 29, 29))
         );
 
         storeHints.setFont(new java.awt.Font("Stencil", 3, 24)); // NOI18N
         storeHints.setText("Current Hints : 0");
-        storeHints.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-            public void propertyChange(java.beans.PropertyChangeEvent evt) {
-                storeHintsPropertyChange(evt);
-            }
+        storeHints.addPropertyChangeListener((java.beans.PropertyChangeEvent evt) -> {
+            storeHintsPropertyChange(evt);
         });
 
         jLabel4.setFont(new java.awt.Font("Snap ITC", 0, 18)); // NOI18N
@@ -544,60 +590,60 @@ public class MainFrame extends javax.swing.JFrame {
         javax.swing.GroupLayout StoreLayout = new javax.swing.GroupLayout(Store);
         Store.setLayout(StoreLayout);
         StoreLayout.setHorizontalGroup(
-            StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(StoreLayout.createSequentialGroup()
-                .addGap(146, 146, 146)
-                .addComponent(hints5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 143, Short.MAX_VALUE)
-                .addComponent(hints10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(120, 120, 120)
-                .addComponent(hints15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(123, 123, 123))
-            .addGroup(StoreLayout.createSequentialGroup()
-                .addGap(246, 246, 246)
-                .addComponent(jLabel4)
-                .addGap(318, 318, 318)
-                .addComponent(jLabel5)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(212, 212, 212))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, StoreLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, StoreLayout.createSequentialGroup()
-                        .addComponent(cartBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 121, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(34, 34, 34)
-                        .addComponent(backbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(38, 38, 38))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, StoreLayout.createSequentialGroup()
-                        .addComponent(storeHints, javax.swing.GroupLayout.PREFERRED_SIZE, 259, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(14, 14, 14))))
+                StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(StoreLayout.createSequentialGroup()
+                                .addGap(146, 146, 146)
+                                .addComponent(hints5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 143, Short.MAX_VALUE)
+                                .addComponent(hints10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(120, 120, 120)
+                                .addComponent(hints15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(123, 123, 123))
+                        .addGroup(StoreLayout.createSequentialGroup()
+                                .addGap(246, 246, 246)
+                                .addComponent(jLabel4)
+                                .addGap(318, 318, 318)
+                                .addComponent(jLabel5)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(212, 212, 212))
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, StoreLayout.createSequentialGroup()
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addGroup(StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, StoreLayout.createSequentialGroup()
+                                                .addComponent(cartBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 121, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(34, 34, 34)
+                                                .addComponent(backbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(38, 38, 38))
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, StoreLayout.createSequentialGroup()
+                                                .addComponent(storeHints, javax.swing.GroupLayout.PREFERRED_SIZE, 259, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(14, 14, 14))))
         );
         StoreLayout.setVerticalGroup(
-            StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(StoreLayout.createSequentialGroup()
-                .addGap(19, 19, 19)
-                .addComponent(storeHints, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(73, 73, 73)
-                .addGroup(StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(hints5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(hints15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(hints10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                        .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addComponent(jLabel6))
-                .addGroup(StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(StoreLayout.createSequentialGroup()
-                        .addGap(94, 94, 94)
-                        .addComponent(cartBtn)
-                        .addContainerGap(105, Short.MAX_VALUE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, StoreLayout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(backbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(65, 65, 65))))
+                StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(StoreLayout.createSequentialGroup()
+                                .addGap(19, 19, 19)
+                                .addComponent(storeHints, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(73, 73, 73)
+                                .addGroup(StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(hints5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(hints15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(hints10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                                .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                        .addComponent(jLabel6))
+                                .addGroup(StoreLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(StoreLayout.createSequentialGroup()
+                                                .addGap(94, 94, 94)
+                                                .addComponent(cartBtn)
+                                                .addContainerGap(105, Short.MAX_VALUE))
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, StoreLayout.createSequentialGroup()
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                .addComponent(backbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(65, 65, 65))))
         );
 
         hints15.setBackground(Color.white);
@@ -613,17 +659,13 @@ public class MainFrame extends javax.swing.JFrame {
         backToStoreBtn.setFont(new java.awt.Font("Showcard Gothic", 3, 24)); // NOI18N
         backToStoreBtn.setForeground(new java.awt.Color(51, 153, 255));
         backToStoreBtn.setText("Back to Store");
-        backToStoreBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                backToStoreBtnActionPerformed(evt);
-            }
+        backToStoreBtn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            backToStoreBtnActionPerformed(evt);
         });
 
-        paymentCombo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "PayPal", "Credit Card" }));
-        paymentCombo.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                paymentComboActionPerformed(evt);
-            }
+        paymentCombo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[]{"PayPal", "Credit Card"}));
+        paymentCombo.addActionListener((java.awt.event.ActionEvent evt) -> {
+            paymentComboActionPerformed(evt);
         });
 
         labelForPayment.setFont(new java.awt.Font("Segoe UI Semibold", 0, 24)); // NOI18N
@@ -645,10 +687,8 @@ public class MainFrame extends javax.swing.JFrame {
         PayPalPanel.add(email, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 240, 224, -1));
 
         confirmaPP.setText("Confirma");
-        confirmaPP.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                confirmaPPActionPerformed(evt);
-            }
+        confirmaPP.addActionListener((java.awt.event.ActionEvent evt) -> {
+            confirmaPPActionPerformed(evt);
         });
         PayPalPanel.add(confirmaPP, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 320, 90, 30));
 
@@ -656,20 +696,12 @@ public class MainFrame extends javax.swing.JFrame {
         PayPalPanel.add(STPP, new org.netbeans.lib.awtextra.AbsoluteConstraints(50, 390, 530, 40));
 
         anuleazaPP.setText("Anuleaza");
-        anuleazaPP.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                anuleazaPPActionPerformed(evt);
-            }
+        anuleazaPP.addActionListener((java.awt.event.ActionEvent evt) -> {
+            anuleazaPPActionPerformed(evt);
         });
         PayPalPanel.add(anuleazaPP, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 320, 80, 30));
         PayPalPanel.add(imgPP, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1110, 580));
-        BufferedImage PPbg = null;
-        try {
-            PPbg = ImageIO.read(new File("graphics/imagini/PPimg.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImagePP = PPbg.getScaledInstance(1280,720, Image.SCALE_SMOOTH);
-        imgPP.setIcon(new ImageIcon(resultingImagePP));
+        imageSetup(imgPP, "graphics/imagini/PPimg.png", 1280, 720);
 
         jLayeredPane5.add(PayPalPanel);
 
@@ -677,10 +709,8 @@ public class MainFrame extends javax.swing.JFrame {
         CreditCardPanel.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         nume.setText("Nume complet");
-        nume.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                numeActionPerformed(evt);
-            }
+        nume.addActionListener((java.awt.event.ActionEvent evt) -> {
+            numeActionPerformed(evt);
         });
         CreditCardPanel.add(nume, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 290, 150, 30));
 
@@ -694,10 +724,8 @@ public class MainFrame extends javax.swing.JFrame {
         CreditCardPanel.add(expDate, new org.netbeans.lib.awtextra.AbsoluteConstraints(200, 370, 80, 30));
 
         confirmaCC.setText("Confirma");
-        confirmaCC.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                confirmaCCActionPerformed(evt);
-            }
+        confirmaCC.addActionListener((java.awt.event.ActionEvent evt) -> {
+            confirmaCCActionPerformed(evt);
         });
         CreditCardPanel.add(confirmaCC, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 410, 150, 30));
 
@@ -705,32 +733,23 @@ public class MainFrame extends javax.swing.JFrame {
         CreditCardPanel.add(STCC, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 450, 480, 40));
 
         anuleazaCC.setText("Anuleaza");
-        anuleazaCC.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                anuleazaCCActionPerformed(evt);
-            }
+        anuleazaCC.addActionListener((java.awt.event.ActionEvent evt) -> {
+            anuleazaCCActionPerformed(evt);
         });
         CreditCardPanel.add(anuleazaCC, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 410, 140, 30));
         CreditCardPanel.add(imgCC, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1160, 580));
-        BufferedImage CCbg = null;
-        try {
-            CCbg = ImageIO.read(new File("graphics/imagini/CCimg.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImageCC = CCbg.getScaledInstance(1280,720, Image.SCALE_SMOOTH);
-        imgCC.setIcon(new ImageIcon(resultingImageCC));
-
+        imageSetup(imgCC, "graphics/imagini/CCimg.png", 1280, 720);
         jLayeredPane5.add(CreditCardPanel);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLayeredPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 796, Short.MAX_VALUE)
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jLayeredPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 796, Short.MAX_VALUE)
         );
         jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLayeredPane5)
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jLayeredPane5)
         );
 
         jLabel15.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
@@ -753,65 +772,65 @@ public class MainFrame extends javax.swing.JFrame {
         javax.swing.GroupLayout jLayeredPane4Layout = new javax.swing.GroupLayout(jLayeredPane4);
         jLayeredPane4.setLayout(jLayeredPane4Layout);
         jLayeredPane4Layout.setHorizontalGroup(
-            jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jLayeredPane4Layout.createSequentialGroup()
-                .addGroup(jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(backToStoreBtn)
-                    .addGroup(jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(jLayeredPane4Layout.createSequentialGroup()
-                            .addGap(207, 207, 207)
-                            .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGroup(jLayeredPane4Layout.createSequentialGroup()
-                            .addGap(135, 135, 135)
-                            .addComponent(labelForPayment, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(paymentCombo, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGap(176, 176, 176)
-                            .addComponent(dePlatit))))
-                .addGroup(jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jLayeredPane4Layout.createSequentialGroup()
-                        .addGap(64, 64, 64)
-                        .addComponent(jLabel15))
-                    .addGroup(jLayeredPane4Layout.createSequentialGroup()
-                        .addGap(50, 50, 50)
-                        .addComponent(jLabel16)))
-                .addContainerGap(54, Short.MAX_VALUE))
+                                .addGroup(jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                        .addComponent(backToStoreBtn)
+                                        .addGroup(jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGroup(jLayeredPane4Layout.createSequentialGroup()
+                                                        .addGap(207, 207, 207)
+                                                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                .addGroup(jLayeredPane4Layout.createSequentialGroup()
+                                                        .addGap(135, 135, 135)
+                                                        .addComponent(labelForPayment, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                        .addComponent(paymentCombo, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addGap(176, 176, 176)
+                                                        .addComponent(dePlatit))))
+                                .addGroup(jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(jLayeredPane4Layout.createSequentialGroup()
+                                                .addGap(64, 64, 64)
+                                                .addComponent(jLabel15))
+                                        .addGroup(jLayeredPane4Layout.createSequentialGroup()
+                                                .addGap(50, 50, 50)
+                                                .addComponent(jLabel16)))
+                                .addContainerGap(54, Short.MAX_VALUE))
         );
         jLayeredPane4Layout.setVerticalGroup(
-            jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jLayeredPane4Layout.createSequentialGroup()
-                .addGap(69, 69, 69)
-                .addGroup(jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(labelForPayment)
-                    .addComponent(paymentCombo, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(dePlatit))
-                .addGroup(jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jLayeredPane4Layout.createSequentialGroup()
-                        .addGap(22, 22, 22)
-                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 486, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jLayeredPane4Layout.createSequentialGroup()
-                        .addGap(58, 58, 58)
-                        .addComponent(jLabel15)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(backToStoreBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(24, Short.MAX_VALUE))
+                jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jLayeredPane4Layout.createSequentialGroup()
+                                .addGap(69, 69, 69)
+                                .addGroup(jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(labelForPayment)
+                                        .addComponent(paymentCombo, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(dePlatit))
+                                .addGroup(jLayeredPane4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(jLayeredPane4Layout.createSequentialGroup()
+                                                .addGap(22, 22, 22)
+                                                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 486, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(jLayeredPane4Layout.createSequentialGroup()
+                                                .addGap(58, 58, 58)
+                                                .addComponent(jLabel15)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(backToStoreBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(24, Short.MAX_VALUE))
         );
 
-        jPanel1.setLocation(jPanel1.getX()+50,jPanel1.getY());
+        jPanel1.setLocation(jPanel1.getX() + 50, jPanel1.getY());
         jLabel15.setVisible(false);
         jLabel16.setVisible(false);
 
         javax.swing.GroupLayout CartLayout = new javax.swing.GroupLayout(Cart);
         Cart.setLayout(CartLayout);
         CartLayout.setHorizontalGroup(
-            CartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLayeredPane4)
+                CartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jLayeredPane4)
         );
         CartLayout.setVerticalGroup(
-            CartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLayeredPane4)
+                CartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jLayeredPane4)
         );
 
         jLayeredPane1.add(Cart);
@@ -825,62 +844,33 @@ public class MainFrame extends javax.swing.JFrame {
         backBtn.setForeground(new java.awt.Color(255, 255, 255));
         backBtn.setText("MENU");
         backBtn.setAlignmentY(-0.5F);
-        backBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                backBtnActionPerformed(evt);
-            }
+        backBtn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            backBtnActionPerformed(evt);
         });
         Levels.add(backBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(1034, 615, 240, 80));
 
         nivel3Btn.setBackground(new java.awt.Color(204, 255, 255));
         nivel3Btn.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 255), 10, true));
-        nivel3Btn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                nivel3BtnActionPerformed(evt);
-            }
+        nivel3Btn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            nivel3BtnActionPerformed(evt);
         });
         Levels.add(nivel3Btn, new org.netbeans.lib.awtextra.AbsoluteConstraints(880, 200, 340, 339));
-        BufferedImage levels3 = null;
-        try {
-            levels3 = ImageIO.read(new File("graphics/imagini/3q.jpg"));
-        } catch (IOException e) {
-        }
-        Image resultingImagel3 = levels3.getScaledInstance(340, 340, Image.SCALE_SMOOTH);
-        nivel3Btn.setIcon(new ImageIcon(resultingImagel3));
-
+        imageSetup(nivel3Btn, "graphics/imagini/3q.jpg", 340, 340);
         nivel2Btn.setBackground(new java.awt.Color(204, 255, 255));
         nivel2Btn.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 255), 10, true));
-        nivel2Btn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                nivel2BtnActionPerformed(evt);
-            }
+        nivel2Btn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            nivel2BtnActionPerformed(evt);
         });
         Levels.add(nivel2Btn, new org.netbeans.lib.awtextra.AbsoluteConstraints(480, 130, 340, 339));
-        BufferedImage levels2 = null;
-        try {
-            levels2 = ImageIO.read(new File("graphics/imagini/2q.jpg"));
-        } catch (IOException e) {
-        }
-        Image resultingImagel2 = levels2.getScaledInstance(340, 340, Image.SCALE_SMOOTH);
-        nivel2Btn.setIcon(new ImageIcon(resultingImagel2));
-
+        imageSetup(nivel2Btn, "graphics/imagini/2q.jpg", 340, 340);
         nivel1Btn.setBackground(new java.awt.Color(204, 255, 255));
         nivel1Btn.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 255), 10, true));
         nivel1Btn.setPreferredSize(new java.awt.Dimension(261, 339));
-        nivel1Btn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                nivel1BtnActionPerformed(evt);
-            }
+        nivel1Btn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            nivel1BtnActionPerformed(evt);
         });
         Levels.add(nivel1Btn, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 190, 340, 340));
-        BufferedImage levels1 = null;
-        try {
-            levels1 = ImageIO.read(new File("graphics/imagini/1q.jpg"));
-        } catch (IOException e) {
-        }
-        Image resultingImagel1 = levels1.getScaledInstance(340, 340, Image.SCALE_SMOOTH);
-        nivel1Btn.setIcon(new ImageIcon(resultingImagel1));
-
+        imageSetup(nivel1Btn, "graphics/imagini/1q.jpg", 340, 340);
         hintsLevels.setText("Current Hints : 0");
         Levels.add(hintsLevels, new org.netbeans.lib.awtextra.AbsoluteConstraints(1103, 28, 131, 34));
 
@@ -899,14 +889,7 @@ public class MainFrame extends javax.swing.JFrame {
         jLabel9.setText("Nivel 3");
         Levels.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 160, 150, 50));
         Levels.add(jLabel10, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1280, 720));
-        BufferedImage bglevels = null;
-        try {
-            bglevels = ImageIO.read(new File("graphics/imagini/bgLevels.jpg"));
-        } catch (IOException e) {
-        }
-        Image resultingImagelevels = bglevels.getScaledInstance(1280, 720, Image.SCALE_SMOOTH);
-        jLabel10.setIcon(new ImageIcon(resultingImagelevels));
-
+        imageSetup(jLabel10, "graphics/imagini/bgLevels.jpg", 1280, 720);
         jLayeredPane1.add(Levels);
 
         Nivel1.setBackground(new java.awt.Color(102, 255, 204));
@@ -928,151 +911,117 @@ public class MainFrame extends javax.swing.JFrame {
         soundBtn1.setBorderPainted(false);
         soundBtn1.setContentAreaFilled(false);
         soundBtn1.setPreferredSize(new java.awt.Dimension(70, 70));
-        soundBtn1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                soundBtn1ActionPerformed(evt);
-            }
+        soundBtn1.addActionListener((java.awt.event.ActionEvent evt) -> {
+            soundBtn1ActionPerformed(evt);
         });
         jLayeredPane2.add(soundBtn1, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 390, 70, 70));
+
+        BufferedImage img = null;
+        try {
+            img = ImageIO.read(new File("graphics/imagini/soundON.png"));
+        } catch (IOException e) {
+        }
         soundBtn1.setIcon(new ImageIcon(img));
 
         stanga1.setBorder(javax.swing.BorderFactory.createMatteBorder(5, 5, 5, 5, new java.awt.Color(102, 255, 204)));
         stanga1.setBorderPainted(false);
         stanga1.setContentAreaFilled(false);
-        stanga1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                stanga1ActionPerformed(evt);
-            }
+        stanga1.addActionListener((java.awt.event.ActionEvent evt) -> {
+            stanga1ActionPerformed(evt);
         });
         jLayeredPane2.add(stanga1, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 160, 30, 30));
 
         dreapta2.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(0, 0, 0)));
         dreapta2.setBorderPainted(false);
         dreapta2.setContentAreaFilled(false);
-        dreapta2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                dreapta2ActionPerformed(evt);
-            }
-        });
+        dreapta2.addActionListener(this::dreapta2ActionPerformed);
         jLayeredPane2.add(dreapta2, new org.netbeans.lib.awtextra.AbsoluteConstraints(1170, 270, 40, 40));
 
         stanga3.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(255, 0, 51)));
         stanga3.setBorderPainted(false);
         stanga3.setContentAreaFilled(false);
-        stanga3.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                stanga3ActionPerformed(evt);
-            }
+        stanga3.addActionListener((java.awt.event.ActionEvent evt) -> {
+            stanga3ActionPerformed(evt);
         });
         jLayeredPane2.add(stanga3, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 360, 50, 40));
 
         dreapta4.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(0, 153, 153)));
         dreapta4.setBorderPainted(false);
         dreapta4.setContentAreaFilled(false);
-        dreapta4.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                dreapta4ActionPerformed(evt);
-            }
+        dreapta4.addActionListener((java.awt.event.ActionEvent evt) -> {
+            dreapta4ActionPerformed(evt);
         });
         jLayeredPane2.add(dreapta4, new org.netbeans.lib.awtextra.AbsoluteConstraints(1140, 370, 40, 40));
 
         stanga5.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(0, 0, 255)));
         stanga5.setBorderPainted(false);
         stanga5.setContentAreaFilled(false);
-        stanga5.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                stanga5ActionPerformed(evt);
-            }
-        });
+        stanga5.addActionListener(this::stanga5ActionPerformed);
         jLayeredPane2.add(stanga5, new org.netbeans.lib.awtextra.AbsoluteConstraints(500, 580, 40, 40));
 
         dreapta6.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(0, 153, 153)));
         dreapta6.setBorderPainted(false);
         dreapta6.setContentAreaFilled(false);
-        dreapta6.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                dreapta6ActionPerformed(evt);
-            }
-        });
+        dreapta6.addActionListener(this::dreapta6ActionPerformed);
         jLayeredPane2.add(dreapta6, new org.netbeans.lib.awtextra.AbsoluteConstraints(1210, 600, 50, 70));
 
         dreapta7.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(102, 0, 102)));
         dreapta7.setBorderPainted(false);
         dreapta7.setContentAreaFilled(false);
-        dreapta7.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                dreapta7ActionPerformed(evt);
-            }
-        });
+        dreapta7.addActionListener(this::dreapta7ActionPerformed);
         jLayeredPane2.add(dreapta7, new org.netbeans.lib.awtextra.AbsoluteConstraints(900, 610, 40, 40));
 
         dreapta1.setBorder(javax.swing.BorderFactory.createMatteBorder(5, 5, 5, 5, new java.awt.Color(102, 255, 204)));
         dreapta1.setBorderPainted(false);
         dreapta1.setContentAreaFilled(false);
-        dreapta1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                dreapta1ActionPerformed(evt);
-            }
+        dreapta1.addActionListener((java.awt.event.ActionEvent evt) -> {
+            dreapta1ActionPerformed(evt);
         });
         jLayeredPane2.add(dreapta1, new org.netbeans.lib.awtextra.AbsoluteConstraints(1020, 150, 40, 40));
 
         stanga2.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(0, 0, 0)));
         stanga2.setBorderPainted(false);
         stanga2.setContentAreaFilled(false);
-        stanga2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                stanga2ActionPerformed(evt);
-            }
+        stanga2.addActionListener((java.awt.event.ActionEvent evt) -> {
+            stanga2ActionPerformed(evt);
         });
         jLayeredPane2.add(stanga2, new org.netbeans.lib.awtextra.AbsoluteConstraints(660, 260, 40, 40));
 
         dreapta3.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(255, 0, 51)));
         dreapta3.setBorderPainted(false);
         dreapta3.setContentAreaFilled(false);
-        dreapta3.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                dreapta3ActionPerformed(evt);
-            }
-        });
+        dreapta3.addActionListener(this::dreapta3ActionPerformed);
         jLayeredPane2.add(dreapta3, new org.netbeans.lib.awtextra.AbsoluteConstraints(830, 360, 50, 40));
 
         stanga4.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(0, 153, 153)));
         stanga4.setBorderPainted(false);
         stanga4.setContentAreaFilled(false);
-        stanga4.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                stanga4ActionPerformed(evt);
-            }
+        stanga4.addActionListener((java.awt.event.ActionEvent evt) -> {
+            stanga4ActionPerformed(evt);
         });
         jLayeredPane2.add(stanga4, new org.netbeans.lib.awtextra.AbsoluteConstraints(630, 360, 30, 40));
 
         dreapta5.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(0, 0, 255)));
         dreapta5.setBorderPainted(false);
         dreapta5.setContentAreaFilled(false);
-        dreapta5.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                dreapta5ActionPerformed(evt);
-            }
+        dreapta5.addActionListener((java.awt.event.ActionEvent evt) -> {
+            dreapta5ActionPerformed(evt);
         });
         jLayeredPane2.add(dreapta5, new org.netbeans.lib.awtextra.AbsoluteConstraints(1020, 570, 40, 40));
 
         stanga6.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(0, 153, 153)));
         stanga6.setBorderPainted(false);
         stanga6.setContentAreaFilled(false);
-        stanga6.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                stanga6ActionPerformed(evt);
-            }
+        stanga6.addActionListener((java.awt.event.ActionEvent evt) -> {
+            stanga6ActionPerformed(evt);
         });
         jLayeredPane2.add(stanga6, new org.netbeans.lib.awtextra.AbsoluteConstraints(700, 590, 50, 70));
 
         stanga7.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(102, 0, 102)));
         stanga7.setBorderPainted(false);
         stanga7.setContentAreaFilled(false);
-        stanga7.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                stanga7ActionPerformed(evt);
-            }
+        stanga7.addActionListener((java.awt.event.ActionEvent evt) -> {
+            stanga7ActionPerformed(evt);
         });
         jLayeredPane2.add(stanga7, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 610, 40, 40));
 
@@ -1083,10 +1032,8 @@ public class MainFrame extends javax.swing.JFrame {
 
         giveup1Btn.setText("Give up");
         giveup1Btn.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 255), 4, true));
-        giveup1Btn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                giveup1BtnActionPerformed(evt);
-            }
+        giveup1Btn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            giveup1BtnActionPerformed(evt);
         });
         jLayeredPane2.add(giveup1Btn, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 530, 70, 30));
 
@@ -1107,43 +1054,33 @@ public class MainFrame extends javax.swing.JFrame {
         hintsLevel1.setFont(new java.awt.Font("Times New Roman", 1, 24)); // NOI18N
         hintsLevel1.setForeground(new java.awt.Color(255, 255, 255));
         hintsLevel1.setText("Hints Left: 0");
-        hintsLevel1.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-            public void propertyChange(java.beans.PropertyChangeEvent evt) {
-                hintsLevel1PropertyChange(evt);
-            }
+        hintsLevel1.addPropertyChangeListener((java.beans.PropertyChangeEvent evt) -> {
+            hintsLevel1PropertyChange(evt);
         });
         jLayeredPane2.add(hintsLevel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 80, 180, 50));
 
         useHint1.setText("Use Hint");
         useHint1.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(102, 102, 255), 4, true));
-        useHint1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                useHint1ActionPerformed(evt);
-            }
+        useHint1.addActionListener((java.awt.event.ActionEvent evt) -> {
+            useHint1ActionPerformed(evt);
         });
         jLayeredPane2.add(useHint1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 140, 80, 40));
         jLayeredPane2.add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1280, 720));
-        BufferedImage level1bg = null;
-        try {
-            level1bg = ImageIO.read(new File("graphics/imagini/bglvl1.jpg"));
-        } catch (IOException e) {
-        }
-        Image resultingImagelevel1bg = level1bg.getScaledInstance(1280, 720, Image.SCALE_SMOOTH);
-        jLabel11.setIcon(new ImageIcon(resultingImagelevel1bg));
+        imageSetup(jLabel11, "graphics/imagini/bglvl1.jpg", 1280, 720);
 
         javax.swing.GroupLayout Nivel1Layout = new javax.swing.GroupLayout(Nivel1);
         Nivel1.setLayout(Nivel1Layout);
         Nivel1Layout.setHorizontalGroup(
-            Nivel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, Nivel1Layout.createSequentialGroup()
-                .addComponent(jLayeredPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+                Nivel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, Nivel1Layout.createSequentialGroup()
+                                .addComponent(jLayeredPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, Short.MAX_VALUE))
         );
         Nivel1Layout.setVerticalGroup(
-            Nivel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, Nivel1Layout.createSequentialGroup()
-                .addComponent(jLayeredPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+                Nivel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, Nivel1Layout.createSequentialGroup()
+                                .addComponent(jLayeredPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, Short.MAX_VALUE))
         );
 
         jLayeredPane1.add(Nivel1);
@@ -1158,10 +1095,8 @@ public class MainFrame extends javax.swing.JFrame {
         soundBtn2.setBorderPainted(false);
         soundBtn2.setContentAreaFilled(false);
         soundBtn2.setPreferredSize(new java.awt.Dimension(70, 70));
-        soundBtn2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                soundBtn2ActionPerformed(evt);
-            }
+        soundBtn2.addActionListener((java.awt.event.ActionEvent evt) -> {
+            soundBtn2ActionPerformed(evt);
         });
         jLayeredPane3.add(soundBtn2, new org.netbeans.lib.awtextra.AbsoluteConstraints(1210, 0, 70, 70));
         soundBtn2.setIcon(new ImageIcon(img));
@@ -1171,10 +1106,8 @@ public class MainFrame extends javax.swing.JFrame {
         jLayeredPane3.add(timeLeft2, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 160, 180, 50));
 
         giveup2Btn.setText("Give up");
-        giveup2Btn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                giveup2BtnActionPerformed(evt);
-            }
+        giveup2Btn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            giveup2BtnActionPerformed(evt);
         });
         jLayeredPane3.add(giveup2Btn, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 610, -1, -1));
         jLayeredPane3.add(imgLvl2, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 30, 920, 660));
@@ -1191,17 +1124,17 @@ public class MainFrame extends javax.swing.JFrame {
         javax.swing.GroupLayout Nivel2Layout = new javax.swing.GroupLayout(Nivel2);
         Nivel2.setLayout(Nivel2Layout);
         Nivel2Layout.setHorizontalGroup(
-            Nivel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Nivel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLayeredPane3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
+                Nivel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(Nivel2Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(jLayeredPane3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addContainerGap())
         );
         Nivel2Layout.setVerticalGroup(
-            Nivel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Nivel2Layout.createSequentialGroup()
-                .addComponent(jLayeredPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 714, Short.MAX_VALUE)
-                .addContainerGap())
+                Nivel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(Nivel2Layout.createSequentialGroup()
+                                .addComponent(jLayeredPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 714, Short.MAX_VALUE)
+                                .addContainerGap())
         );
 
         jLayeredPane1.add(Nivel2);
@@ -1211,10 +1144,8 @@ public class MainFrame extends javax.swing.JFrame {
         Nivel1.setVisible(false);
 
         giveup3Btn.setText("Give up");
-        giveup3Btn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                giveup3BtnActionPerformed(evt);
-            }
+        giveup3Btn.addActionListener((java.awt.event.ActionEvent evt) -> {
+            giveup3BtnActionPerformed(evt);
         });
 
         imgLvl3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -1230,48 +1161,46 @@ public class MainFrame extends javax.swing.JFrame {
         soundBtn3.setBorderPainted(false);
         soundBtn3.setContentAreaFilled(false);
         soundBtn3.setPreferredSize(new java.awt.Dimension(70, 70));
-        soundBtn3.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                soundBtn3ActionPerformed(evt);
-            }
+        soundBtn3.addActionListener((java.awt.event.ActionEvent evt) -> {
+            soundBtn3ActionPerformed(evt);
         });
 
         javax.swing.GroupLayout Nivel3Layout = new javax.swing.GroupLayout(Nivel3);
         Nivel3.setLayout(Nivel3Layout);
         Nivel3Layout.setHorizontalGroup(
-            Nivel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Nivel3Layout.createSequentialGroup()
-                .addGroup(Nivel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(Nivel3Layout.createSequentialGroup()
-                        .addGap(41, 41, 41)
-                        .addComponent(giveup3Btn))
-                    .addGroup(Nivel3Layout.createSequentialGroup()
-                        .addGap(23, 23, 23)
-                        .addGroup(Nivel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(timeLeft3, javax.swing.GroupLayout.PREFERRED_SIZE, 159, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 80, Short.MAX_VALUE)
-                .addComponent(imgLvl3, javax.swing.GroupLayout.PREFERRED_SIZE, 909, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(soundBtn3, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(21, 21, 21))
+                Nivel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(Nivel3Layout.createSequentialGroup()
+                                .addGroup(Nivel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(Nivel3Layout.createSequentialGroup()
+                                                .addGap(41, 41, 41)
+                                                .addComponent(giveup3Btn))
+                                        .addGroup(Nivel3Layout.createSequentialGroup()
+                                                .addGap(23, 23, 23)
+                                                .addGroup(Nivel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addComponent(timeLeft3, javax.swing.GroupLayout.PREFERRED_SIZE, 159, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 80, Short.MAX_VALUE)
+                                .addComponent(imgLvl3, javax.swing.GroupLayout.PREFERRED_SIZE, 909, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(soundBtn3, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(21, 21, 21))
         );
         Nivel3Layout.setVerticalGroup(
-            Nivel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Nivel3Layout.createSequentialGroup()
-                .addGap(10, 10, 10)
-                .addGroup(Nivel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(soundBtn3, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(93, 93, 93)
-                .addComponent(timeLeft3, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(giveup3Btn)
-                .addGap(210, 210, 210))
-            .addGroup(Nivel3Layout.createSequentialGroup()
-                .addGap(56, 56, 56)
-                .addComponent(imgLvl3, javax.swing.GroupLayout.PREFERRED_SIZE, 579, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(85, Short.MAX_VALUE))
+                Nivel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(Nivel3Layout.createSequentialGroup()
+                                .addGap(10, 10, 10)
+                                .addGroup(Nivel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                        .addComponent(soundBtn3, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(93, 93, 93)
+                                .addComponent(timeLeft3, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(giveup3Btn)
+                                .addGap(210, 210, 210))
+                        .addGroup(Nivel3Layout.createSequentialGroup()
+                                .addGap(56, 56, 56)
+                                .addComponent(imgLvl3, javax.swing.GroupLayout.PREFERRED_SIZE, 579, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(85, Short.MAX_VALUE))
         );
 
         soundBtn3.setIcon(new ImageIcon(img));
@@ -1281,46 +1210,34 @@ public class MainFrame extends javax.swing.JFrame {
         jLayeredPane7.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jButton2.setText("Quit");
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
-            }
+        jButton2.addActionListener((java.awt.event.ActionEvent evt) -> {
+            jButton2ActionPerformed(evt);
         });
         jLayeredPane7.add(jButton2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 60, 190, 30));
 
         jButton3.setText("Menu");
-        jButton3.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton3ActionPerformed(evt);
-            }
+        jButton3.addActionListener((java.awt.event.ActionEvent evt) -> {
+            jButton3ActionPerformed(evt);
         });
         jLayeredPane7.add(jButton3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 30, 190, 30));
 
         jButton1.setText("Levels");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
+        jButton1.addActionListener((java.awt.event.ActionEvent evt) -> {
+            jButton1ActionPerformed(evt);
         });
         jLayeredPane7.add(jButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 190, 30));
         jLayeredPane7.add(jLabel17, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1280, 720));
-        BufferedImage wonbg = null;
-        try {
-            wonbg = ImageIO.read(new File("graphics/imagini/win.jpg"));
-        } catch (IOException e) {
-        }
-        Image resultingImagebgwonbg = wonbg.getScaledInstance(1280,720, Image.SCALE_SMOOTH);
-        jLabel17.setIcon(new ImageIcon(resultingImagebgwonbg));
+        imageSetup(jLabel17, "graphics/imagini/win.jpg", 1280, 720);
 
         javax.swing.GroupLayout WonLayout = new javax.swing.GroupLayout(Won);
         Won.setLayout(WonLayout);
         WonLayout.setHorizontalGroup(
-            WonLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLayeredPane7)
+                WonLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jLayeredPane7)
         );
         WonLayout.setVerticalGroup(
-            WonLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLayeredPane7)
+                WonLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jLayeredPane7)
         );
 
         jLayeredPane1.add(Won);
@@ -1338,23 +1255,17 @@ public class MainFrame extends javax.swing.JFrame {
         jLabel12.setText("Game Over!");
         jLayeredPane6.add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 610, 160, 90));
         jLayeredPane6.add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, -20, 1280, 720));
-        BufferedImage ootbg = null;
-        try {
-            ootbg = ImageIO.read(new File("graphics/imagini/OutofTimebg.jpg"));
-        } catch (IOException e) {
-        }
-        Image resultingImagebgoot = ootbg.getScaledInstance(1280,720, Image.SCALE_SMOOTH);
-        jLabel13.setIcon(new ImageIcon(resultingImagebgoot));
+        imageSetup(jLabel13, "graphics/imagini/OutofTimebg.jpg", 1280, 720);
 
         javax.swing.GroupLayout OutOfTimeLayout = new javax.swing.GroupLayout(OutOfTime);
         OutOfTime.setLayout(OutOfTimeLayout);
         OutOfTimeLayout.setHorizontalGroup(
-            OutOfTimeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLayeredPane6)
+                OutOfTimeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jLayeredPane6)
         );
         OutOfTimeLayout.setVerticalGroup(
-            OutOfTimeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLayeredPane6)
+                OutOfTimeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jLayeredPane6)
         );
 
         jLayeredPane1.add(OutOfTime);
@@ -1362,18 +1273,18 @@ public class MainFrame extends javax.swing.JFrame {
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLayeredPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 3860, Short.MAX_VALUE)
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jLayeredPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 3860, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(jLayeredPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLayeredPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, Short.MAX_VALUE))
         );
 
         pack();
-    }// </editor-fold>//
+    }// </editor-fold>                              
 
 
     private void playBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playBtnActionPerformed
@@ -1517,6 +1428,14 @@ public class MainFrame extends javax.swing.JFrame {
         dePlatit.setText("Aveti de platit: " + String.valueOf(sum) + " lei");
         Cart.setVisible(true);
         buttonSound();
+        if (memento) {
+            passwordField.restoreMemento(passwordMemento);
+            inputField.restoreMemento(inputMemento);
+
+            email.setText(inputField.getText());
+            password.setText(passwordField.getText());
+        }
+
     }//GEN-LAST:event_cartBtnActionPerformed
 
     private void hints5BtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_hints5BtnActionPerformed
@@ -1598,7 +1517,7 @@ public class MainFrame extends javax.swing.JFrame {
             Logger.getLogger(MainFrame.class
                     .getName()).log(Level.SEVERE, null, ex);
         }
-        soundBtn.setIcon(new ImageIcon(img));;
+        soundBtn.setIcon(new ImageIcon(img));
         soundBtn1.setIcon(new ImageIcon(img));
         soundBtn2.setIcon(new ImageIcon(img));
         soundBtn3.setIcon(new ImageIcon(img));
@@ -1653,13 +1572,29 @@ public class MainFrame extends javax.swing.JFrame {
         return false;
     }
 
-    public void Hint() {
+    public void Hint(JButton stanga, JButton dreapta) {
 
-        Singleton.getInstance().setHints(Singleton.getInstance().getHints() - 1);
-        Singleton.getInstance().setGasitValue(Singleton.getInstance().getGasitValue() + 1);
-        hintsSetup();
-        GameWon(1);
-        buttonSound();
+        try {
+            Singleton.getInstance().setHints(Singleton.getInstance().getHints() - 1);
+            Singleton.getInstance().setGasitValue(Singleton.getInstance().getGasitValue() + 1);
+            hintsSetup();
+            GameWon(1);
+            buttonSound();
+
+            ContinuousMouseMovementCommand moveCommand = new ContinuousMouseMovementCommand((int) stanga.getLocationOnScreen().getX() + 15, (int) stanga.getLocationOnScreen().getY() + 15, 7);
+            invoker.executeCommand(moveCommand);
+
+            stanga.setBorderPainted(true);
+            stanga.setEnabled(false);
+            Thread.sleep(1000);
+            ContinuousMouseMovementCommand moveCommand2 = new ContinuousMouseMovementCommand((int) dreapta.getLocationOnScreen().getX() + 15, (int) dreapta.getLocationOnScreen().getY() + 15, 7);
+            invoker.executeCommand(moveCommand2);
+
+            dreapta.setBorderPainted(true);
+            dreapta.setEnabled(false);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
     }
     private void useHint1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_useHint1ActionPerformed
@@ -1667,34 +1602,27 @@ public class MainFrame extends javax.swing.JFrame {
 
         if (canHint()) {
             if (!stanga1.isBorderPainted() || !dreapta1.isBorderPainted()) {
-                stanga1.setBorderPainted(true);
-                dreapta1.setBorderPainted(true);
-                Hint();
+
+                Hint(stanga1, dreapta1);
 
             } else if (!stanga2.isBorderPainted() || !dreapta2.isBorderPainted()) {
-                stanga2.setBorderPainted(true);
-                dreapta2.setBorderPainted(true);
-                Hint();
+
+                Hint(stanga2, dreapta2);
             } else if (!stanga3.isBorderPainted() || !dreapta3.isBorderPainted()) {
-                stanga3.setBorderPainted(true);
-                dreapta3.setBorderPainted(true);
-                Hint();
+
+                Hint(stanga3, dreapta3);
             } else if (!stanga4.isBorderPainted() || !dreapta4.isBorderPainted()) {
-                stanga4.setBorderPainted(true);
-                dreapta4.setBorderPainted(true);
-                Hint();
+
+                Hint(stanga4, dreapta4);
             } else if (!stanga5.isBorderPainted() || !dreapta5.isBorderPainted()) {
-                stanga5.setBorderPainted(true);
-                dreapta5.setBorderPainted(true);
-                Hint();
+
+                Hint(stanga5, dreapta5);
             } else if (!stanga6.isBorderPainted() || !dreapta6.isBorderPainted()) {
-                stanga6.setBorderPainted(true);
-                dreapta6.setBorderPainted(true);
-                Hint();
+
+                Hint(stanga6, dreapta6);
             } else if (!stanga7.isBorderPainted() || !dreapta7.isBorderPainted()) {
-                stanga7.setBorderPainted(true);
-                dreapta7.setBorderPainted(true);
-                Hint();
+
+                Hint(stanga7, dreapta7);
             } else {
 
                 if (GameWon(1)) {
@@ -1743,106 +1671,50 @@ public class MainFrame extends javax.swing.JFrame {
         cart.removeItem(hint15);
         cart.removeItem(hint10);
         Cart.setVisible(false);
+        email.setText("email");
+        password.setText("parola");
         hints5.setBackground(Color.white);
         hints10.setBackground(Color.white);
         hints15.setBackground(Color.white);
         buttonSound();
 
     }//GEN-LAST:event_anuleazaPPActionPerformed
-    @SuppressWarnings("unchecked")
+
+    JPasswordField1 passwordField = new JPasswordField1("");
+    JInputField1 inputField = new JInputField1("");
+    JPasswordFieldMemento passwordMemento = passwordField.createMemento();
+    JInputFieldMemento inputMemento = inputField.createMemento();
+    Boolean memento = false;
+
+    public void memento() {
+
+        passwordField.setText(password.getText());
+        inputField.setText(email.getText());
+
+        // Create a memento for the current state of the fields
+        passwordMemento = passwordField.createMemento();
+        inputMemento = inputField.createMemento();
+
+        // Restore the fields to their previous state using the mementos
+    }
+
+
     private void confirmaPPActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_confirmaPPActionPerformed
         // TODO add your handling code here:
-        backToStoreBtn.setEnabled(false);
-        anuleazaPP.setEnabled(false);
-        paymentCombo.setEnabled(false);
-        confirmaPP.setEnabled(false);
-        Thread t = new Thread();
-
+        confirma(anuleazaPP, confirmaPP, STPP, "Pay Pal");
+        //valideaza():
+        memento();
+        memento = true;
         buttonSound();
-
-        cart.pay(new PaypalStrategy(email.getText(), password.getText()));
-        STPP.setText("Status Tranzacite: Ai platit " + String.valueOf(cart.calculateTotal()) + " lei folosind PayPal");
-
-        Timer timer = new Timer(); //new timer
-        jLabel16.setVisible(true);
-        jLabel15.setVisible(true);
-
-        TimerTask task = new TimerTask() {
-            int s = 4;
-
-            public void run() {
-
-                s--;
-                if (s == -1) {
-                    jLabel16.setVisible(false);
-                    jLabel15.setVisible(false);
-                    STPP.setText("");
-                    Singleton.getInstance().setHints(Singleton.getInstance().getHints() + cart.calculateTotal());
-                    hintsSetup();
-                    Menu.setVisible(true);
-                    cart.removeItem(hint5);
-                    cart.removeItem(hint15);
-                    cart.removeItem(hint10);
-                    Cart.setVisible(false);
-                    hints5.setBackground(Color.white);
-                    hints10.setBackground(Color.white);
-                    hints15.setBackground(Color.white);
-                    backToStoreBtn.setEnabled(true);
-                    anuleazaPP.setEnabled(true);
-                    confirmaPP.setEnabled(true);
-                    paymentCombo.setEnabled(true);
-                }
-
-            }
-        };
-        timer.scheduleAtFixedRate(task,
-                0, 1000);
-
 
     }//GEN-LAST:event_confirmaPPActionPerformed
 
+
     private void confirmaCCActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_confirmaCCActionPerformed
         // TODO add your handling code here:
-        backToStoreBtn.setEnabled(false);
-        anuleazaCC.setEnabled(false);
-        paymentCombo.setEnabled(false);
-        confirmaCC.setEnabled(false);
-        cart.pay(new CreditCardStrategy(nume.getText(), cardNumber.getText(), cvv.getText(), expDate.getText()));
-        STCC.setText("Status Tranzacite: platit" + String.valueOf(cart.calculateTotal()) + " lei folosind Cardul de Credit");
-        Timer timer = new Timer(); //new timer
-        jLabel16.setVisible(true);
-        jLabel15.setVisible(true);
+        confirma(anuleazaCC, confirmaCC, STCC, "Cardul de Credit");
+        //valideaza();
 
-        TimerTask task = new TimerTask() {
-            int s = 4;
-
-            public void run() {
-
-                s--;
-                if (s == -1) {
-                    jLabel16.setVisible(false);
-                    jLabel15.setVisible(false);
-                    STCC.setText("");
-                    Singleton.getInstance().setHints(Singleton.getInstance().getHints() + cart.calculateTotal());
-                    hintsSetup();
-                    Menu.setVisible(true);
-                    cart.removeItem(hint5);
-                    cart.removeItem(hint15);
-                    cart.removeItem(hint10);
-                    Cart.setVisible(false);
-                    hints5.setBackground(Color.white);
-                    hints10.setBackground(Color.white);
-                    hints15.setBackground(Color.white);
-                    backToStoreBtn.setEnabled(true);
-                    anuleazaCC.setEnabled(true);
-                    paymentCombo.setEnabled(true);
-                    confirmaCC.setEnabled(true);
-                }
-
-            }
-        };
-        timer.scheduleAtFixedRate(task,
-                0, 1000);
         buttonSound();
     }//GEN-LAST:event_confirmaCCActionPerformed
 
@@ -1864,74 +1736,35 @@ public class MainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_playBtnMouseClicked
 
     private void playBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_playBtnMouseEntered
-        // TODO add your handling code here:
-        BufferedImage play = null;
-        try {
-            play = ImageIO.read(new File("graphics/imagini/UI/PNG/blue_button01.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImageplay = play.getScaledInstance(240, 70, Image.SCALE_SMOOTH);
-        playBtn.setIcon(new ImageIcon(resultingImageplay));
+
+        imageSetup(playBtn, "graphics/imagini/UI/PNG/blue_button01.png", 240, 70);
 
     }//GEN-LAST:event_playBtnMouseEntered
 
     private void playBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_playBtnMouseExited
-        // TODO add your handling code here:
-        BufferedImage play = null;
-        try {
-            play = ImageIO.read(new File("graphics/imagini/UI/PNG/blue_button04.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImageplay = play.getScaledInstance(240, 70, Image.SCALE_SMOOTH);
-        playBtn.setIcon(new ImageIcon(resultingImageplay));
+
+        imageSetup(playBtn, "graphics/imagini/UI/PNG/blue_button04.png", 240, 70);
     }//GEN-LAST:event_playBtnMouseExited
 
     private void storeBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_storeBtnMouseEntered
-        // TODO add your handling code here:
-        BufferedImage store = null;
-        try {
-            store = ImageIO.read(new File("graphics/imagini/UI/PNG/yellow_button03.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImagestore = store.getScaledInstance(220, 60, Image.SCALE_SMOOTH);
-        storeBtn.setIcon(new ImageIcon(resultingImagestore));
+
+        imageSetup(storeBtn, "graphics/imagini/UI/PNG/yellow_button03.png", 220, 60);
 
     }//GEN-LAST:event_storeBtnMouseEntered
 
+
     private void storeBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_storeBtnMouseExited
-        // TODO add your handling code here:
-        BufferedImage store = null;
-        try {
-            store = ImageIO.read(new File("graphics/imagini/UI/PNG/yellow_button00.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImagestore = store.getScaledInstance(220, 60, Image.SCALE_SMOOTH);
-        storeBtn.setIcon(new ImageIcon(resultingImagestore));
+
+        imageSetup(storeBtn, "graphics/imagini/UI/PNG/yellow_button00.png", 220, 60);
 
     }//GEN-LAST:event_storeBtnMouseExited
 
     private void quitBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_quitBtnMouseExited
-        // TODO add your handling code here:
-        BufferedImage quit = null;
-        try {
-            quit = ImageIO.read(new File("graphics/imagini/UI/PNG/red_button01.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImagequit = quit.getScaledInstance(180, 60, Image.SCALE_SMOOTH);
-        quitBtn.setIcon(new ImageIcon(resultingImagequit));
-
+        imageSetup(quitBtn, "graphics/imagini/UI/PNG/red_button01.png", 180, 60);
     }//GEN-LAST:event_quitBtnMouseExited
 
     private void quitBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_quitBtnMouseEntered
-        // TODO add your handling code here:
-        BufferedImage quit = null;
-        try {
-            quit = ImageIO.read(new File("graphics/imagini/UI/PNG/red_button02.png"));
-        } catch (IOException e) {
-        }
-        Image resultingImagequit = quit.getScaledInstance(180, 60, Image.SCALE_SMOOTH);
-        quitBtn.setIcon(new ImageIcon(resultingImagequit));
-
+        imageSetup(quitBtn, "graphics/imagini/UI/PNG/red_button02.png", 180, 60);
     }//GEN-LAST:event_quitBtnMouseEntered
 
     private void numeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_numeActionPerformed
@@ -1988,36 +1821,30 @@ public class MainFrame extends javax.swing.JFrame {
 
                 }
             }
-        } catch (ClassNotFoundException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(MainFrame.class
                     .getName()).log(java.util.logging.Level.SEVERE, null, ex);
 
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(MainFrame.class
-                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
-
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(MainFrame.class
-                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
-
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(MainFrame.class
-                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
+        
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    new MainFrame().setVisible(true);
-
-                } catch (IOException ex) {
-                    Logger.getLogger(MainFrame.class
-                            .getName()).log(Level.SEVERE, null, ex);
-                }
-
+        java.awt.EventQueue.invokeLater(() -> {
+            try {
+                
+                new MainFrame().setVisible(true);
+                
+                //adapter
+                QButton quitButton = new QuitButton();
+                KeyboardAdapter adapter = new KeyboardAdapter(quitButton, KeyEvent.VK_Q);
+                adapter.listenForKeyPress();
+                //end
+                
+            } catch (IOException ex) {
+                Logger.getLogger(MainFrame.class
+                        .getName()).log(Level.SEVERE, null, ex);
             }
         });
     }
@@ -2131,4 +1958,14 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JLabel timeLeft3;
     private javax.swing.JButton useHint1;
     // End of variables declaration//GEN-END:variables
+
+    private class ActionListenerImpl implements ActionListener {
+
+        public ActionListenerImpl() {
+        }
+
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            hints5BtnActionPerformed(evt);
+        }
+    }
 }

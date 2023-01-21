@@ -8,8 +8,8 @@ package com.mycompany.proiectip.design.adaper;
  *
  * @author antonie
  */
-class QuitButton implements Button {
+public class QuitButton implements QButton {
     public void click() {
-        // Perform action to quit the program
+        System.exit(1);
     }
 }
